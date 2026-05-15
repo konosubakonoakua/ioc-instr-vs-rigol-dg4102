@@ -114,8 +114,8 @@ class RigolDG4102Driver(Driver):
             # Sweep
             "SWEEP_STAT": ("SOUR{ch}:SWE:STAT", ""),
             "SWEEP_TIME": ("SOUR{ch}:SWE:TIME", ""),
-            "SWEEP_START": ("SOUR{ch}:SWE:STAR", ""),
-            "SWEEP_STOP": ("SOUR{ch}:SWE:STOP", ""),
+            "SWEEP_START": ("SOUR{ch}:FREQ:STAR", ""),
+            "SWEEP_STOP": ("SOUR{ch}:FREQ:STOP", ""),
             # Burst
             "BURST_STAT": ("SOUR{ch}:BURS:STAT", ""),
             "BURST_MODE": ("SOUR{ch}:BURS:MODE", ""),
@@ -169,7 +169,8 @@ class RigolDG4102Driver(Driver):
                     self.instr.write(full_cmd)
                     logging.info(f"Write {reason}: {full_cmd}")
                     if suffix != "TRIG_MANUAL":
-                        self.setParam(reason, value)
+                        # CRITICAL FIX: Update state with original index to prevent type errors
+                        self.setParam(reason, epics_value)
                     return True
 
         if reason == "SYSTEM_PRESET":
@@ -199,8 +200,13 @@ class RigolDG4102Driver(Driver):
                     if reason in self.pvdb and self.pvdb[reason].get("type") == "enum":
                         enums = self.pvdb[reason].get("enums", [])
                         try:
-                            val = enums.index(val.upper())
-                        except:
+                            # Try exact match first, then upper
+                            if val in enums:
+                                val = enums.index(val)
+                            else:
+                                val = enums.index(val.upper())
+                        except ValueError:
+                            # Fallback if instrument returns something unexpected
                             pass
                     else:
                         try:
@@ -240,16 +246,7 @@ if __name__ == "__main__":
                 f"{ch}:POLARITY": {"type": "enum", "enums": ["NORMAL", "INVERTED"]},
                 f"{ch}:FUNC": {
                     "type": "enum",
-                    "enums": [
-                        "SIN",
-                        "SQU",
-                        "RAMP",
-                        "PULS",
-                        "NOIS",
-                        "DC",
-                        "ARB",
-                        "HARM",
-                    ],
+                    "enums": ["SIN", "SQU", "RAMP", "PULS", "NOIS", "DC", "ARB", "HARM"],
                 },
                 f"{ch}:FREQ": {"type": "float", "unit": "Hz"},
                 f"{ch}:AMPL": {"type": "float", "unit": "V"},
@@ -273,18 +270,7 @@ if __name__ == "__main__":
                 f"{ch}:MOD_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
                 f"{ch}:MOD_TYP": {
                     "type": "enum",
-                    "enums": [
-                        "AM",
-                        "FM",
-                        "PM",
-                        "ASK",
-                        "FSK",
-                        "PSK",
-                        "BPSK",
-                        "QPSK",
-                        "OSK",
-                        "PWM",
-                    ],
+                    "enums": ["AM", "FM", "PM", "ASK", "FSK", "PSK", "BPSK", "QPSK", "OSK", "PWM"],
                 },
                 f"{ch}:TRIG_SOUR": {"type": "enum", "enums": ["INT", "EXT", "MAN"]},
                 f"{ch}:TRIG_MANUAL": {"type": "int"},
@@ -302,8 +288,12 @@ if __name__ == "__main__":
     server = SimpleServer()
     server.createPV(args.prefix, RIGOL_PVDB)
 
-    #visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
-    visa_addr = f"TCPIP0::{args.ip}::INSTR"
+    # Use IP or full VISA string appropriately based on configuration
+    # If port is provided and not empty, use SOCKET, else use INSTR
+    visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
+    if not args.port or args.port == "0":
+        visa_addr = f"TCPIP0::{args.ip}::INSTR"
+        
     driver = RigolDG4102Driver(visa_addr, args.terminator, RIGOL_PVDB)
 
     def shutdown_handler(signum, frame):

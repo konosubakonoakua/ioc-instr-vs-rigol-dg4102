@@ -45,7 +45,12 @@ class RigolDG4102Driver(Driver):
                 self.instr = self.rm.open_resource(self.visa_addr)
                 self.instr.write_termination = self.terminator
                 self.instr.read_termination = self.terminator
-                self.instr.timeout = 2000
+                self.instr.timeout = 5000  # 5s timeout
+
+                # Clear instrument state
+                self.instr.write("*RST")
+                self.instr.write("*CLS")
+                self.instr.query("*OPC?")
 
                 idn = self.instr.query("*IDN?")
                 logging.info(f"Connected to: {idn.strip()}")
@@ -58,6 +63,12 @@ class RigolDG4102Driver(Driver):
                 self.connected = False
                 self.setParam("COMM_STATUS", 0)
                 self.updatePVs()
+                if self.instr:
+                    try:
+                        self.instr.clear()
+                        self.instr.close()
+                    except:
+                        pass
                 return False
 
     def _heartbeat_loop(self):
@@ -67,18 +78,25 @@ class RigolDG4102Driver(Driver):
             else:
                 with self.lock:
                     try:
-                        self.instr.query("*STB?")
+                        # Operation Complete query as a health check
+                        self.instr.query("*OPC?")
                     except Exception as e:
                         logging.error(f"Heartbeat failed: {e}")
                         self.connected = False
                         self.setParam("COMM_STATUS", 0)
                         self.updatePVs()
+                        try:
+                            self.instr.write("*CLS")
+                            self.instr.clear()
+                        except:
+                            pass
             time.sleep(3)
 
     def close(self):
         with self.lock:
             if self.instr:
                 try:
+                    self.instr.clear()
                     self.instr.close()
                 except:
                     pass
@@ -93,11 +111,9 @@ class RigolDG4102Driver(Driver):
 
     def _get_scpi_cmd(self, channel, suffix, is_query=False):
         mapping = {
-            # Basic
             "OUTPUT": ("OUTP{ch}", ""),
             "IMPEDANCE": ("OUTP{ch}:IMP", ""),
             "POLARITY": ("OUTP{ch}:POL", ""),
-            # Waveform General
             "FUNC": ("SOUR{ch}:FUNC", ""),
             "FREQ": ("SOUR{ch}:FREQ", ""),
             "AMPL": ("SOUR{ch}:VOLT", ""),
@@ -105,121 +121,148 @@ class RigolDG4102Driver(Driver):
             "HIGH": ("SOUR{ch}:VOLT:HIGH", ""),
             "LOW": ("SOUR{ch}:VOLT:LOW", ""),
             "PHASE": ("SOUR{ch}:PHAS", ""),
-            # Waveform Specific
             "SQU_DCYC": ("SOUR{ch}:FUNC:SQU:DCYC", ""),
             "RAMP_SYMM": ("SOUR{ch}:FUNC:RAMP:SYMM", ""),
             "PULS_WIDT": ("SOUR{ch}:PULS:WIDT", ""),
             "PULS_LEAD": ("SOUR{ch}:PULS:TRAN:LEAD", ""),
             "PULS_TRAI": ("SOUR{ch}:PULS:TRAN:TRA", ""),
-            # Sweep
             "SWEEP_STAT": ("SOUR{ch}:SWE:STAT", ""),
             "SWEEP_TIME": ("SOUR{ch}:SWE:TIME", ""),
             "SWEEP_START": ("SOUR{ch}:FREQ:STAR", ""),
             "SWEEP_STOP": ("SOUR{ch}:FREQ:STOP", ""),
-            # Burst
             "BURST_STAT": ("SOUR{ch}:BURS:STAT", ""),
             "BURST_MODE": ("SOUR{ch}:BURS:MODE", ""),
             "BURST_CYCLES": ("SOUR{ch}:BURS:NCYC", ""),
             "BURST_PERIOD": ("SOUR{ch}:BURS:INT:PER", ""),
-            # Modulation
             "MOD_STAT": ("SOUR{ch}:MOD:STAT", ""),
             "MOD_TYP": ("SOUR{ch}:MOD:TYP", ""),
-            # Trigger
             "TRIG_SOUR": ("SOUR{ch}:BURS:TRIG:SOUR", ""),
         }
-
-        # Write-only actions
-        action_mapping = {
-            "TRIG_MANUAL": "*TRG",
+        global_action_mapping = {
+            "COPY_1_TO_2": "SYST:CSC CH1,CH2",
+            "COPY_2_TO_1": "SYST:CSC CH2,CH1",
+            "PHASE_SYNC": "PHAS:INIT",
         }
-
-        if suffix in mapping:
+        if suffix in mapping and channel is not None:
             cmd_base, _ = mapping[suffix]
             cmd = cmd_base.format(ch=channel)
             return f"{cmd}?" if is_query else cmd
-        elif not is_query and suffix in action_mapping:
-            return action_mapping[suffix]
+        elif not is_query and suffix in {"TRIG_MANUAL"}:
+            return "*TRG"
+        elif not is_query and suffix in global_action_mapping:
+            return global_action_mapping[suffix]
         return None
 
     @log_exceptions
     def write(self, reason, value):
-        if reason == "COMM_STATUS":
-            return False
-
+        if reason == "COMM_STATUS": return False
+        epics_value = value
+        scpi_value = value
         channel, suffix = self._parse_reason(reason)
 
         if reason in self.pvdb and self.pvdb[reason].get("type") == "enum":
             enums = self.pvdb[reason].get("enums", [])
             try:
-                value = enums[int(value)]
+                if isinstance(value, str):
+                    if "item " in value:
+                        value = int(value.replace("item ", ""))
+                    elif value.upper() in enums:
+                        value = enums.index(value.upper())
+                epics_value = int(value)
+                scpi_value = enums[epics_value]
             except:
-                pass
+                return False
+
+            if suffix == "IMPEDANCE":
+                scpi_value = "50" if scpi_value == "50 Ohm" else "INF"
+
+        if reason in ["SYSTEM_PRESET", "COPY_1_TO_2", "COPY_2_TO_1", "PHASE_SYNC"]:
+            cmd = "*RST" if reason == "SYSTEM_PRESET" else self._get_scpi_cmd(None, reason)
+            if cmd:
+                with self.lock:
+                    if not self.connected: return False
+                    try:
+                        self.instr.write(cmd)
+                        self.instr.query("*OPC?") # SYNC
+                        self.setParam(reason, 1)
+                        self.updatePVs()
+                        time.sleep(0.05)
+                        self.setParam(reason, 0)
+                        self.updatePVs()
+                        return True
+                    except:
+                        try: self.instr.clear()
+                        except: pass
+                        return False
 
         if channel:
             cmd = self._get_scpi_cmd(channel, suffix)
             if cmd:
-                if suffix == "TRIG_MANUAL":
-                    full_cmd = cmd
-                else:
-                    full_cmd = f"{cmd} {value}"
-
+                full_cmd = cmd if suffix == "TRIG_MANUAL" else f"{cmd} {scpi_value}"
                 with self.lock:
-                    if not self.connected:
+                    if not self.connected: return False
+                    try:
+                        self.instr.write(full_cmd)
+                        self.instr.query("*OPC?") # SYNC
+                        if suffix != "TRIG_MANUAL":
+                            self.setParam(reason, epics_value)
+                        return True
+                    except:
+                        try: self.instr.clear()
+                        except: pass
                         return False
-                    self.instr.write(full_cmd)
-                    logging.info(f"Write {reason}: {full_cmd}")
-                    if suffix != "TRIG_MANUAL":
-                        # CRITICAL FIX: Update state with original index to prevent type errors
-                        self.setParam(reason, epics_value)
-                    return True
-
-        if reason == "SYSTEM_PRESET":
-            with self.lock:
-                self.instr.write("*RST")
-                return True
-
         return False
 
     @log_exceptions
     def read(self, reason):
-        if reason == "COMM_STATUS":
-            return self.connected
+        if reason == "COMM_STATUS": return self.connected
         if reason == "IDN":
             with self.lock:
-                return self.instr.query("*IDN?") if self.connected else "Disconnected"
+                if not self.connected: return "Disconnected"
+                try:
+                    val = self.instr.query("*IDN?").strip()
+                    self.setParam(reason, val)
+                    return val
+                except:
+                    try: self.instr.clear()
+                    except: pass
+                    return self.getParam(reason)
 
         channel, suffix = self._parse_reason(reason)
         if channel:
             cmd = self._get_scpi_cmd(channel, suffix, is_query=True)
             if cmd:
                 with self.lock:
-                    if not self.connected:
+                    if not self.connected: return self.getParam(reason)
+                    try:
+                        val = self.instr.query(cmd).strip().replace('"', "")
+                        if ";" in val: val = val.split(";")[0]
+                    except:
+                        try:
+                            self.instr.write("*CLS")
+                            self.instr.clear()
+                        except: pass
                         return self.getParam(reason)
-                    val = self.instr.query(cmd).strip().replace('"', "")
+
+                    if suffix == "IMPEDANCE":
+                        val = "High-Z" if ("INF" in val.upper() or "9.9" in val) else "50 Ohm"
 
                     if reason in self.pvdb and self.pvdb[reason].get("type") == "enum":
                         enums = self.pvdb[reason].get("enums", [])
                         try:
-                            # Try exact match first, then upper
-                            if val in enums:
-                                val = enums.index(val)
-                            else:
-                                val = enums.index(val.upper())
-                        except ValueError:
-                            # Fallback if instrument returns something unexpected
-                            pass
+                            index = enums.index(val) if val in enums else enums.index(val.upper())
+                            self.setParam(reason, index)
+                            return index
+                        except:
+                            return self.getParam(reason)
                     else:
                         try:
-                            val = (
-                                float(val)
-                                if "." in val or "E" in val.upper()
-                                else int(val)
-                            )
+                            if "." in val or "E" in val.upper(): val = float(val)
+                            else: val = int(val)
+                            self.setParam(reason, val)
+                            return val
                         except:
-                            pass
-                    self.setParam(reason, val)
-                    return val
-
+                            return self.getParam(reason)
         return self.getParam(reason)
 
 
@@ -231,69 +274,54 @@ if __name__ == "__main__":
     parser.add_argument("--terminator", type=str, default="\n")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     RIGOL_PVDB = {}
     channels = ["CH1", "CH2"]
-
     for ch in channels:
-        RIGOL_PVDB.update(
-            {
-                f"{ch}:OUTPUT": {"type": "enum", "enums": ["OFF", "ON"]},
-                f"{ch}:IMPEDANCE": {"type": "string"},
-                f"{ch}:POLARITY": {"type": "enum", "enums": ["NORMAL", "INVERTED"]},
-                f"{ch}:FUNC": {
-                    "type": "enum",
-                    "enums": ["SIN", "SQU", "RAMP", "PULS", "NOIS", "DC", "ARB", "HARM"],
-                },
-                f"{ch}:FREQ": {"type": "float", "unit": "Hz"},
-                f"{ch}:AMPL": {"type": "float", "unit": "V"},
-                f"{ch}:OFFSET": {"type": "float", "unit": "V"},
-                f"{ch}:HIGH": {"type": "float", "unit": "V"},
-                f"{ch}:LOW": {"type": "float", "unit": "V"},
-                f"{ch}:PHASE": {"type": "float", "unit": "deg"},
-                f"{ch}:SQU_DCYC": {"type": "float", "unit": "%"},
-                f"{ch}:RAMP_SYMM": {"type": "float", "unit": "%"},
-                f"{ch}:PULS_WIDT": {"type": "float", "unit": "s"},
-                f"{ch}:PULS_LEAD": {"type": "float", "unit": "s"},
-                f"{ch}:PULS_TRAI": {"type": "float", "unit": "s"},
-                f"{ch}:SWEEP_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
-                f"{ch}:SWEEP_TIME": {"type": "float", "unit": "s"},
-                f"{ch}:SWEEP_START": {"type": "float", "unit": "Hz"},
-                f"{ch}:SWEEP_STOP": {"type": "float", "unit": "Hz"},
-                f"{ch}:BURST_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
-                f"{ch}:BURST_MODE": {"type": "enum", "enums": ["TRIG", "GAT", "INF"]},
-                f"{ch}:BURST_CYCLES": {"type": "int"},
-                f"{ch}:BURST_PERIOD": {"type": "float", "unit": "s"},
-                f"{ch}:MOD_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
-                f"{ch}:MOD_TYP": {
-                    "type": "enum",
-                    "enums": ["AM", "FM", "PM", "ASK", "FSK", "PSK", "BPSK", "QPSK", "OSK", "PWM"],
-                },
-                f"{ch}:TRIG_SOUR": {"type": "enum", "enums": ["INT", "EXT", "MAN"]},
-                f"{ch}:TRIG_MANUAL": {"type": "int"},
-            }
-        )
+        RIGOL_PVDB.update({
+            f"{ch}:OUTPUT": {"type": "enum", "enums": ["OFF", "ON"]},
+            f"{ch}:IMPEDANCE": {"type": "enum", "enums": ["50 Ohm", "High-Z"]},
+            f"{ch}:POLARITY": {"type": "enum", "enums": ["NORMAL", "INVERTED"]},
+            f"{ch}:FUNC": {"type": "enum", "enums": ["SIN", "SQU", "RAMP", "PULS", "NOIS", "DC", "USER", "HARM"]},
+            f"{ch}:FREQ": {"type": "float", "unit": "Hz", "prec": 3, "lolim": 0, "hilim": 100000000},
+            f"{ch}:AMPL": {"type": "float", "unit": "V", "prec": 3, "lolim": -20, "hilim": 20},
+            f"{ch}:OFFSET": {"type": "float", "unit": "V", "prec": 3, "lolim": -10, "hilim": 10},
+            f"{ch}:HIGH": {"type": "float", "unit": "V", "prec": 3, "lolim": -10, "hilim": 10},
+            f"{ch}:LOW": {"type": "float", "unit": "V", "prec": 3, "lolim": -10, "hilim": 10},
+            f"{ch}:PHASE": {"type": "float", "unit": "deg", "prec": 2, "lolim": 0, "hilim": 360},
+            f"{ch}:SQU_DCYC": {"type": "float", "unit": "%", "prec": 2, "lolim": 20, "hilim": 80},
+            f"{ch}:RAMP_SYMM": {"type": "float", "unit": "%", "prec": 2, "lolim": 0, "hilim": 100},
+            f"{ch}:PULS_WIDT": {"type": "float", "unit": "s", "prec": 9, "lolim": 0, "hilim": 1},
+            f"{ch}:PULS_LEAD": {"type": "float", "unit": "s", "prec": 9, "lolim": 0, "hilim": 1},
+            f"{ch}:PULS_TRAI": {"type": "float", "unit": "s", "prec": 9, "lolim": 0, "hilim": 1},
+            f"{ch}:SWEEP_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
+            f"{ch}:SWEEP_TIME": {"type": "float", "unit": "s", "prec": 3, "lolim": 0, "hilim": 300},
+            f"{ch}:SWEEP_START": {"type": "float", "unit": "Hz", "prec": 3, "lolim": 0, "hilim": 100000000},
+            f"{ch}:SWEEP_STOP": {"type": "float", "unit": "Hz", "prec": 3, "lolim": 0, "hilim": 100000000},
+            f"{ch}:BURST_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
+            f"{ch}:BURST_MODE": {"type": "enum", "enums": ["TRIG", "GAT", "INF"]},
+            f"{ch}:BURST_CYCLES": {"type": "int", "lolim": 1, "hilim": 1000000},
+            f"{ch}:BURST_PERIOD": {"type": "float", "unit": "s", "prec": 6, "lolim": 0, "hilim": 1000},
+            f"{ch}:MOD_STAT": {"type": "enum", "enums": ["OFF", "ON"]},
+            f"{ch}:MOD_TYP": {"type": "enum", "enums": ["AM", "FM", "PM", "ASK", "FSK", "PSK", "BPSK", "QPSK", "OSK", "PWM"]},
+            f"{ch}:TRIG_SOUR": {"type": "enum", "enums": ["INT", "EXT", "MAN"]},
+            f"{ch}:TRIG_MANUAL": {"type": "int"},
+        })
 
-    RIGOL_PVDB.update(
-        {
-            "IDN": {"type": "string"},
-            "COMM_STATUS": {"type": "enum", "enums": ["Disconnected", "Connected"]},
-            "SYSTEM_PRESET": {"type": "int"},
-        }
-    )
+    RIGOL_PVDB.update({
+        "IDN": {"type": "string"},
+        "COMM_STATUS": {"type": "enum", "enums": ["Disconnected", "Connected"]},
+        "SYSTEM_PRESET": {"type": "int"},
+        "COPY_1_TO_2": {"type": "int"},
+        "COPY_2_TO_1": {"type": "int"},
+        "PHASE_SYNC": {"type": "int"},
+    })
 
     server = SimpleServer()
     server.createPV(args.prefix, RIGOL_PVDB)
 
-    # Use IP or full VISA string appropriately based on configuration
-    # If port is provided and not empty, use SOCKET, else use INSTR
-    visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
-    if not args.port or args.port == "0":
-        visa_addr = f"TCPIP0::{args.ip}::INSTR"
-        
+    visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET" if args.port else f"TCPIP0::{args.ip}::INSTR"
     driver = RigolDG4102Driver(visa_addr, args.terminator, RIGOL_PVDB)
 
     def shutdown_handler(signum, frame):
@@ -304,6 +332,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
-    logging.info(f"Rigol DG4102 Extended IOC started with prefix {args.prefix}")
+    logging.info(f"Rigol DG4102 IOC started with prefix {args.prefix}")
     while True:
         server.process(0.1)

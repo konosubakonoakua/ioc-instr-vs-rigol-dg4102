@@ -5,7 +5,7 @@
     <P>DG4102</P>
   </macros>
   <width>1400</width>
-  <height>900</height>
+  <height>950</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <text>Rigol DG4102 Dual-Channel Waveform Generator (Extended)</text>
@@ -21,36 +21,35 @@
   <widget type="textupdate" version="2.0.0">
     <name>IDN</name>
     <pv_name>$(P):IDN</pv_name>
-    <x>30</x>
+    <x>100</x>
     <y>60</y>
     <width>1000</width>
     <height>30</height>
     <format>6</format>
-    <horizontal_alignment>1</horizontal_alignment>
-    <vertical_alignment>1</vertical_alignment>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
   </widget>
   <widget type="textupdate" version="2.0.0">
     <name>Status</name>
     <pv_name>$(P):COMM_STATUS</pv_name>
-    <x>1050</x>
+    <x>1120</x>
     <y>60</y>
     <width>180</width>
     <height>30</height>
-    <horizontal_alignment>1</horizontal_alignment>
-    <vertical_alignment>1</vertical_alignment>
+    <border_alarm_sensitive>false</border_alarm_sensitive>
   </widget>
   <widget type="group" version="3.0.0">
     <name>Channel 1</name>
     <x>20</x>
     <y>110</y>
     <width>660</width>
-    <height>630</height>
+    <height>750</height>
     <widget type="bool_button" version="2.0.0">
       <name>CH1_OUT</name>
       <pv_name>$(P):CH1:OUTPUT</pv_name>
       <x>10</x>
       <y>10</y>
       <width>80</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
     <widget type="label" version="2.0.0">
       <text>Func:</text>
@@ -63,6 +62,17 @@
       <x>160</x>
       <y>10</y>
       <width>120</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <items>
+        <item>SIN</item>
+        <item>SQU</item>
+        <item>RAMP</item>
+        <item>PULS</item>
+        <item>NOIS</item>
+        <item>DC</item>
+        <item>USER</item>
+        <item>HARM</item>
+      </items>
     </widget>
     <widget type="label" version="2.0.0">
       <text>Freq:</text>
@@ -75,12 +85,12 @@
       <x>70</x>
       <y>55</y>
       <width>150</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
     <widget type="group" version="3.0.0">
-      <name>Voltage Control</name>
+      <name>Voltage &amp; Load</name>
       <x>10</x>
       <y>100</y>
-      <height>182</height>
       <widget type="label" version="2.0.0">
         <text>Ampl:</text>
         <x>5</x>
@@ -90,6 +100,7 @@
         <pv_name>$(P):CH1:AMPL</pv_name>
         <x>70</x>
         <y>5</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Offs:</text>
@@ -100,6 +111,7 @@
         <pv_name>$(P):CH1:OFFSET</pv_name>
         <x>70</x>
         <y>40</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>High:</text>
@@ -114,6 +126,7 @@
         <pv_name>$(P):CH1:HIGH</pv_name>
         <x>70</x>
         <y>75</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Low:</text>
@@ -128,14 +141,30 @@
         <pv_name>$(P):CH1:LOW</pv_name>
         <x>70</x>
         <y>110</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Load:</text>
+        <x>5</x>
+        <y>150</y>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH1:IMPEDANCE</pv_name>
+        <x>70</x>
+        <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>50 Ohm</item>
+          <item>High-Z</item>
+        </items>
       </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Specifics</name>
-      <x>322</x>
-      <y>55</y>
-      <width>308</width>
-      <height>217</height>
+      <x>320</x>
+      <y>10</y>
+      <width>310</width>
+      <height>240</height>
       <widget type="label" version="2.0.0">
         <text>Duty Cycle:</text>
         <x>5</x>
@@ -145,6 +174,7 @@
         <pv_name>$(P):CH1:SQU_DCYC</pv_name>
         <x>120</x>
         <y>5</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Symmetry:</text>
@@ -155,6 +185,7 @@
         <pv_name>$(P):CH1:RAMP_SYMM</pv_name>
         <x>120</x>
         <y>40</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Pulse Width:</text>
@@ -165,6 +196,7 @@
         <pv_name>$(P):CH1:PULS_WIDT</pv_name>
         <x>120</x>
         <y>75</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Lead Edge:</text>
@@ -175,6 +207,7 @@
         <pv_name>$(P):CH1:PULS_LEAD</pv_name>
         <x>120</x>
         <y>110</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Trail Edge:</text>
@@ -185,25 +218,125 @@
         <pv_name>$(P):CH1:PULS_TRAI</pv_name>
         <x>120</x>
         <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+    </widget>
+    <widget type="group" version="3.0.0">
+      <name>Sweep/Burst</name>
+      <x>10</x>
+      <y>310</y>
+      <width>620</width>
+      <height>180</height>
+      <widget type="bool_button" version="2.0.0">
+        <name>S</name>
+        <pv_name>$(P):CH1:SWEEP_STAT</pv_name>
+        <x>10</x>
+        <y>10</y>
+        <off_label>SWEEP OFF</off_label>
+        <on_label>SWEEP ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="bool_button" version="2.0.0">
+        <name>B</name>
+        <pv_name>$(P):CH1:BURST_STAT</pv_name>
+        <x>120</x>
+        <y>10</y>
+        <off_label>BURST OFF</off_label>
+        <on_label>BURST ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Time:</text>
+        <x>10</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:SWEEP_TIME</pv_name>
+        <x>60</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Start:</text>
+        <x>220</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:SWEEP_START</pv_name>
+        <x>270</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Stop:</text>
+        <x>430</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:SWEEP_STOP</pv_name>
+        <x>480</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>B.Mode:</text>
+        <x>10</x>
+        <y>105</y>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_MODE</pv_name>
+        <x>80</x>
+        <y>100</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>TRIG</item>
+          <item>GAT</item>
+          <item>INF</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Cycles:</text>
+        <x>220</x>
+        <y>105</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_CYCLES</pv_name>
+        <x>280</x>
+        <y>100</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Modulation &amp; Trigger</name>
       <x>10</x>
-      <y>492</y>
+      <y>500</y>
       <width>620</width>
-      <height>100</height>
+      <height>150</height>
       <widget type="bool_button" version="2.0.0">
         <pv_name>$(P):CH1:MOD_STAT</pv_name>
         <x>10</x>
         <y>10</y>
         <off_label>MOD OFF</off_label>
         <on_label>MOD ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="combo" version="2.0.0">
         <pv_name>$(P):CH1:MOD_TYP</pv_name>
         <x>120</x>
         <y>10</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>AM</item>
+          <item>FM</item>
+          <item>PM</item>
+          <item>ASK</item>
+          <item>FSK</item>
+          <item>PSK</item>
+          <item>BPSK</item>
+          <item>QPSK</item>
+          <item>OSK</item>
+          <item>PWM</item>
+        </items>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Trig Src:</text>
@@ -214,6 +347,12 @@
         <pv_name>$(P):CH1:TRIG_SOUR</pv_name>
         <x>320</x>
         <y>10</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>INT</item>
+          <item>EXT</item>
+          <item>MAN</item>
+        </items>
       </widget>
       <widget type="action_button" version="3.0.0">
         <name>Manual Trigger</name>
@@ -229,6 +368,7 @@
         <y>10</y>
         <width>120</width>
         <tooltip>$(actions)</tooltip>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
     </widget>
   </widget>
@@ -237,13 +377,14 @@
     <x>700</x>
     <y>110</y>
     <width>660</width>
-    <height>630</height>
+    <height>750</height>
     <widget type="bool_button" version="2.0.0">
       <name>CH2_OUT</name>
       <pv_name>$(P):CH2:OUTPUT</pv_name>
       <x>10</x>
       <y>10</y>
       <width>80</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
     <widget type="label" version="2.0.0">
       <text>Func:</text>
@@ -256,6 +397,17 @@
       <x>160</x>
       <y>10</y>
       <width>120</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <items>
+        <item>SIN</item>
+        <item>SQU</item>
+        <item>RAMP</item>
+        <item>PULS</item>
+        <item>NOIS</item>
+        <item>DC</item>
+        <item>USER</item>
+        <item>HARM</item>
+      </items>
     </widget>
     <widget type="label" version="2.0.0">
       <text>Freq:</text>
@@ -268,12 +420,12 @@
       <x>70</x>
       <y>55</y>
       <width>150</width>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
     <widget type="group" version="3.0.0">
-      <name>Voltage Control</name>
+      <name>Voltage &amp; Load</name>
       <x>10</x>
       <y>100</y>
-      <height>182</height>
       <widget type="label" version="2.0.0">
         <text>Ampl:</text>
         <x>5</x>
@@ -283,6 +435,7 @@
         <pv_name>$(P):CH2:AMPL</pv_name>
         <x>70</x>
         <y>5</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Offs:</text>
@@ -293,6 +446,7 @@
         <pv_name>$(P):CH2:OFFSET</pv_name>
         <x>70</x>
         <y>40</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>High:</text>
@@ -307,6 +461,7 @@
         <pv_name>$(P):CH2:HIGH</pv_name>
         <x>70</x>
         <y>75</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Low:</text>
@@ -321,14 +476,30 @@
         <pv_name>$(P):CH2:LOW</pv_name>
         <x>70</x>
         <y>110</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Load:</text>
+        <x>5</x>
+        <y>150</y>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH2:IMPEDANCE</pv_name>
+        <x>70</x>
+        <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>50 Ohm</item>
+          <item>High-Z</item>
+        </items>
       </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Specifics</name>
-      <x>322</x>
-      <y>55</y>
-      <width>308</width>
-      <height>217</height>
+      <x>320</x>
+      <y>10</y>
+      <width>310</width>
+      <height>240</height>
       <widget type="label" version="2.0.0">
         <text>Duty Cycle:</text>
         <x>5</x>
@@ -338,6 +509,7 @@
         <pv_name>$(P):CH2:SQU_DCYC</pv_name>
         <x>120</x>
         <y>5</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Symmetry:</text>
@@ -348,6 +520,7 @@
         <pv_name>$(P):CH2:RAMP_SYMM</pv_name>
         <x>120</x>
         <y>40</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Pulse Width:</text>
@@ -358,6 +531,7 @@
         <pv_name>$(P):CH2:PULS_WIDT</pv_name>
         <x>120</x>
         <y>75</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Lead Edge:</text>
@@ -368,6 +542,7 @@
         <pv_name>$(P):CH2:PULS_LEAD</pv_name>
         <x>120</x>
         <y>110</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Trail Edge:</text>
@@ -378,25 +553,123 @@
         <pv_name>$(P):CH2:PULS_TRAI</pv_name>
         <x>120</x>
         <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+    </widget>
+    <widget type="group" version="3.0.0">
+      <name>Sweep/Burst</name>
+      <x>10</x>
+      <y>310</y>
+      <width>620</width>
+      <height>180</height>
+      <widget type="bool_button" version="2.0.0">
+        <pv_name>$(P):CH2:SWEEP_STAT</pv_name>
+        <x>10</x>
+        <y>10</y>
+        <off_label>SWEEP OFF</off_label>
+        <on_label>SWEEP ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="bool_button" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_STAT</pv_name>
+        <x>120</x>
+        <y>10</y>
+        <off_label>BURST OFF</off_label>
+        <on_label>BURST ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Time:</text>
+        <x>10</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:SWEEP_TIME</pv_name>
+        <x>60</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Start:</text>
+        <x>220</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:SWEEP_START</pv_name>
+        <x>270</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Stop:</text>
+        <x>430</x>
+        <y>55</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:SWEEP_STOP</pv_name>
+        <x>480</x>
+        <y>50</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>B.Mode:</text>
+        <x>10</x>
+        <y>105</y>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_MODE</pv_name>
+        <x>80</x>
+        <y>100</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>TRIG</item>
+          <item>GAT</item>
+          <item>INF</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Cycles:</text>
+        <x>220</x>
+        <y>105</y>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_CYCLES</pv_name>
+        <x>280</x>
+        <y>100</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Modulation &amp; Trigger</name>
       <x>10</x>
-      <y>492</y>
+      <y>500</y>
       <width>620</width>
-      <height>90</height>
+      <height>150</height>
       <widget type="bool_button" version="2.0.0">
         <pv_name>$(P):CH2:MOD_STAT</pv_name>
         <x>10</x>
         <y>10</y>
         <off_label>MOD OFF</off_label>
         <on_label>MOD ON</on_label>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
       <widget type="combo" version="2.0.0">
         <pv_name>$(P):CH2:MOD_TYP</pv_name>
         <x>120</x>
         <y>10</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>AM</item>
+          <item>FM</item>
+          <item>PM</item>
+          <item>ASK</item>
+          <item>FSK</item>
+          <item>PSK</item>
+          <item>BPSK</item>
+          <item>QPSK</item>
+          <item>OSK</item>
+          <item>PWM</item>
+        </items>
       </widget>
       <widget type="label" version="2.0.0">
         <text>Trig Src:</text>
@@ -407,6 +680,12 @@
         <pv_name>$(P):CH2:TRIG_SOUR</pv_name>
         <x>320</x>
         <y>10</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>INT</item>
+          <item>EXT</item>
+          <item>MAN</item>
+        </items>
       </widget>
       <widget type="action_button" version="3.0.0">
         <name>Manual Trigger 2</name>
@@ -422,166 +701,87 @@
         <y>10</y>
         <width>120</width>
         <tooltip>$(actions)</tooltip>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
     </widget>
   </widget>
-  <widget type="action_button" version="3.0.0">
-    <name>Reset All</name>
-    <actions>
-      <action type="write_pv">
-        <description>Write PV</description>
-        <pv_name>$(P):SYSTEM_PRESET</pv_name>
-        <value>1</value>
-      </action>
-    </actions>
-    <text>SYSTEM RESET</text>
-    <x>1250</x>
-    <y>60</y>
-    <width>140</width>
-    <tooltip>$(actions)</tooltip>
-  </widget>
   <widget type="group" version="3.0.0">
-    <name>Sweep/Burst</name>
-    <x>48</x>
-    <y>430</y>
-    <width>620</width>
-    <height>180</height>
-    <widget type="bool_button" version="2.0.0">
-      <name>S</name>
-      <pv_name>$(P):CH1:SWEEP_STAT</pv_name>
+    <name>System &amp; Sync Actions</name>
+    <x>20</x>
+    <y>865</y>
+    <width>1340</width>
+    <height>70</height>
+    <widget type="action_button" version="3.0.0">
+      <name>Reset All</name>
+      <actions>
+        <action type="write_pv">
+          <description>Write PV</description>
+          <pv_name>$(P):SYSTEM_PRESET</pv_name>
+          <value>1</value>
+        </action>
+      </actions>
+      <text>SYSTEM RESET</text>
       <x>10</x>
-      <y>10</y>
-      <off_label>SWEEP OFF</off_label>
-      <on_label>SWEEP ON</on_label>
+      <y>5</y>
+      <width>150</width>
+      <background_color>
+        <color red="255" green="128" blue="128">
+        </color>
+      </background_color>
+      <tooltip>$(actions)</tooltip>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
-    <widget type="bool_button" version="2.0.0">
-      <name>B</name>
-      <pv_name>$(P):CH1:BURST_STAT</pv_name>
-      <x>120</x>
-      <y>10</y>
-      <off_label>BURST OFF</off_label>
-      <on_label>BURST ON</on_label>
+    <widget type="action_button" version="3.0.0">
+      <name>Sync Phase</name>
+      <actions>
+        <action type="write_pv">
+          <description>Write PV</description>
+          <pv_name>$(P):PHASE_SYNC</pv_name>
+          <value>1</value>
+        </action>
+      </actions>
+      <text>ALIGN PHASE</text>
+      <x>180</x>
+      <y>5</y>
+      <width>150</width>
+      <background_color>
+        <color red="128" green="255" blue="128">
+        </color>
+      </background_color>
+      <tooltip>$(actions)</tooltip>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
-    <widget type="label" version="2.0.0">
-      <text>Time:</text>
-      <x>10</x>
-      <y>55</y>
+    <widget type="action_button" version="3.0.0">
+      <name>Copy 1 to 2</name>
+      <actions>
+        <action type="write_pv">
+          <description>Write PV</description>
+          <pv_name>$(P):COPY_1_TO_2</pv_name>
+          <value>1</value>
+        </action>
+      </actions>
+      <text>COPY CH1 -&gt; CH2</text>
+      <x>350</x>
+      <y>5</y>
+      <width>180</width>
+      <tooltip>$(actions)</tooltip>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH1:SWEEP_TIME</pv_name>
-      <x>60</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Start:</text>
-      <x>220</x>
-      <y>55</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH1:SWEEP_START</pv_name>
-      <x>270</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Stop:</text>
-      <x>430</x>
-      <y>55</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH1:SWEEP_STOP</pv_name>
-      <x>480</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>B.Mode:</text>
-      <x>10</x>
-      <y>105</y>
-    </widget>
-    <widget type="combo" version="2.0.0">
-      <pv_name>$(P):CH1:BURST_MODE</pv_name>
-      <x>80</x>
-      <y>100</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Cycles:</text>
-      <x>220</x>
-      <y>105</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH1:BURST_CYCLES</pv_name>
-      <x>280</x>
-      <y>100</y>
-    </widget>
-  </widget>
-  <widget type="group" version="3.0.0">
-    <name>Sweep/Burst</name>
-    <x>728</x>
-    <y>430</y>
-    <width>620</width>
-    <height>180</height>
-    <widget type="bool_button" version="2.0.0">
-      <pv_name>$(P):CH2:SWEEP_STAT</pv_name>
-      <x>10</x>
-      <y>10</y>
-      <off_label>SWEEP OFF</off_label>
-      <on_label>SWEEP ON</on_label>
-    </widget>
-    <widget type="bool_button" version="2.0.0">
-      <pv_name>$(P):CH2:BURST_STAT</pv_name>
-      <x>120</x>
-      <y>10</y>
-      <off_label>BURST OFF</off_label>
-      <on_label>BURST ON</on_label>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Time:</text>
-      <x>10</x>
-      <y>55</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH2:SWEEP_TIME</pv_name>
-      <x>60</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Start:</text>
-      <x>220</x>
-      <y>55</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH2:SWEEP_START</pv_name>
-      <x>270</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Stop:</text>
-      <x>430</x>
-      <y>55</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH2:SWEEP_STOP</pv_name>
-      <x>480</x>
-      <y>50</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>B.Mode:</text>
-      <x>10</x>
-      <y>105</y>
-    </widget>
-    <widget type="combo" version="2.0.0">
-      <pv_name>$(P):CH2:BURST_MODE</pv_name>
-      <x>80</x>
-      <y>100</y>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <text>Cycles:</text>
-      <x>220</x>
-      <y>105</y>
-    </widget>
-    <widget type="spinner" version="2.0.0">
-      <pv_name>$(P):CH2:BURST_CYCLES</pv_name>
-      <x>280</x>
-      <y>100</y>
+    <widget type="action_button" version="3.0.0">
+      <name>Copy 2 to 1</name>
+      <actions>
+        <action type="write_pv">
+          <description>Write PV</description>
+          <pv_name>$(P):COPY_2_TO_1</pv_name>
+          <value>1</value>
+        </action>
+      </actions>
+      <text>COPY CH2 -&gt; CH1</text>
+      <x>540</x>
+      <y>5</y>
+      <width>180</width>
+      <tooltip>$(actions)</tooltip>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
   </widget>
 </display>

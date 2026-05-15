@@ -1,6 +1,7 @@
 [Unit]
 Description=EPICS SoftIOC for Rigol DG4102 Waveform Generator
-After=network.target
+After=network-online.target
+Wants=network-online.target
 StartLimitIntervalSec=60
 StartLimitBurst=5
 

@@ -302,7 +302,8 @@ if __name__ == "__main__":
     server = SimpleServer()
     server.createPV(args.prefix, RIGOL_PVDB)
 
-    visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
+    #visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
+    visa_addr = f"TCPIP0::{args.ip}::INSTR"
     driver = RigolDG4102Driver(visa_addr, args.terminator, RIGOL_PVDB)
 
     def shutdown_handler(signum, frame):

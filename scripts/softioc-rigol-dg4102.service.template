@@ -1,0 +1,30 @@
+[Unit]
+Description=EPICS SoftIOC for Rigol DG4102 Waveform Generator
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+User={{SERVICE_USER}}
+WorkingDirectory={{PROJECT_DIR}}
+
+# EPICS Environment Variables
+Environment="EPICS_CA_SERVER_PORT={{EPICS_CA_SERVER_PORT}}"
+Environment="EPICS_CAS_SERVER_PORT={{EPICS_CA_SERVER_PORT}}"
+Environment="EPICS_CA_REPEATER_PORT={{EPICS_CA_REPEATER_PORT}}"
+Environment="EPICS_CAS_BEACON_ADDR_LIST={{EPICS_CAS_BEACON_ADDR_LIST}}"
+Environment="EPICS_CA_ADDR_LIST={{EPICS_CA_ADDR_LIST}}"
+Environment="EPICS_BASE={{EPICS_BASE}}"
+# Add EPICS bin to PATH if needed
+Environment="PATH={{EPICS_BASE}}/bin/linux-aarch64:/usr/local/bin:/usr/bin:/bin"
+
+# Start the IOC using the specified Python binary and arguments from .env
+ExecStart={{PYTHON_BIN}} {{PROJECT_DIR}}/ioc.py --ip {{RIGOL_IP}} --port {{RIGOL_PORT}} --prefix {{RIGOL_PREFIX}}
+
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

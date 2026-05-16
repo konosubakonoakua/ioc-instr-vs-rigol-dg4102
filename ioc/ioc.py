@@ -43,13 +43,14 @@ class RigolDG4102Driver(Driver):
                 self.instr = self.rm.open_resource(self.visa_addr)
                 self.instr.write_termination = self.terminator
                 self.instr.read_termination = self.terminator
-                self.instr.timeout = 5000
+                self.instr.timeout = 3000 # 3s is enough for simple queries
 
+                # Initial cleanup
                 self.instr.write("*CLS")
-                self.instr.query("*OPC?")
+                time.sleep(0.1)
 
-                # Identification using Token Sync
-                idn = self._safe_query("*IDN?", expected_type='string')
+                # Check IDN
+                idn = self.instr.query("*IDN?").strip()
                 if idn:
                     logging.info(f"Connected to: {idn}")
                     self.connected = True
@@ -61,64 +62,54 @@ class RigolDG4102Driver(Driver):
                 return False
             except Exception as e:
                 logging.error(f"Connection failed: {e}")
-                self.connected = False
-                self.setParam("COMM_STATUS", 0)
-                self.updatePVs()
-                if self.instr:
-                    try:
-                        self.instr.clear()
-                        self.instr.close()
-                    except: pass
+                self._force_reconnect()
                 return False
 
+    def _force_reconnect(self):
+        """Force a disconnect to clear all socket and instrument buffers."""
+        with self.lock:
+            if self.connected or self.instr:
+                logging.warning("Forcing disconnect to reset communication state...")
+            self.connected = False
+            self.setParam("COMM_STATUS", 0)
+            self.updatePVs()
+            if self.instr:
+                try:
+                    self.instr.close()
+                except: pass
+            self.instr = None
+
     def _safe_query(self, cmd, expected_type=None):
-        """
-        Perform a query using 'Token Sync' (*OPC?) to guarantee command/response alignment.
-        Commands are sent as 'CMD?;*OPC?' and we verify the response ends with ';1'.
-        """
-        if self.instr is None: return None
+        """Perform a query with type-safety and auto-reconnect on sync loss."""
+        if not self.instr or not self.connected: return None
             
         with self.lock:
             try:
-                # Add a mandatory breath delay for the Rigol network stack
+                # Pacing
                 time.sleep(0.04)
+                val = self.instr.query(cmd).strip().replace('"', "")
                 
-                # Append Token Sync suffix
-                sync_cmd = f"{cmd};*OPC?"
-                raw_val = self.instr.query(sync_cmd).strip()
-                
-                # Verify token: response should be "ActualValue;1"
-                if raw_val.endswith(";1"):
-                    # Success: extract the actual value
-                    val = raw_val[:-2].strip().replace('"', "")
-                    
-                    # Sanity check for numeric types
-                    if expected_type == 'numeric':
-                        try:
-                            float(val)
-                        except ValueError:
-                            logging.error(f"Sync error: Query '{cmd}' expected number but got '{val}'. Buffer out of sync.")
-                            self.instr.write("*CLS")
-                            self.instr.clear()
-                            return None
-                    return val
-                else:
-                    # Token mismatch: we read a response to a PREVIOUS query or a malformed packet
-                    logging.error(f"Token Sync Failure: Query '{cmd}' returned '{raw_val}' (missing ';1'). Flushing buffer.")
-                    self.instr.write("*CLS")
-                    self.instr.clear()
+                if not val:
                     return None
+                    
+                if expected_type == 'numeric':
+                    try:
+                        float(val)
+                    except ValueError:
+                        logging.error(f"Sync loss detected: Query '{cmd}' expected number but got '{val}'.")
+                        self._force_reconnect()
+                        return None
+                return val
             except Exception as e:
-                logging.error(f"Safe query '{cmd}' failed: {e}")
-                try:
-                    self.instr.write("*CLS")
-                    self.instr.clear()
-                except: pass
+                logging.error(f"Query '{cmd}' failed: {e}")
+                self._force_reconnect()
                 return None
 
     def _sync_state(self, target_channel=None):
         if not self.connected: return
+        # Action PVs don't need polling
         skip_suffixes = ["SYSTEM_PRESET", "COPY_1_TO_2", "COPY_2_TO_1", "PHASE_SYNC", "TRIG_MANUAL", "COMM_STATUS", "IDN"]
+        
         with self.lock:
             for pv_name in self.pvdb:
                 if any(pv_name.endswith(s) for s in skip_suffixes): continue
@@ -126,10 +117,10 @@ class RigolDG4102Driver(Driver):
                     ch, suffix = self._parse_reason(pv_name)
                     if ch != target_channel: continue
                 
-                # read() will call _safe_query which uses Token Sync
+                # Fetch value
                 self.read(pv_name)
-                # Pacing within the burst
-                time.sleep(0.02)
+                time.sleep(0.01)
+            
             self.updatePVs()
             self.last_full_sync = time.time()
 
@@ -140,32 +131,22 @@ class RigolDG4102Driver(Driver):
             else:
                 with self.lock:
                     try:
-                        # Use *OPC? as a clean sync check
-                        res = self._safe_query("*OPC?", expected_type='numeric')
-                        if res is None: raise Exception("OPC sync check failed")
-                        
-                        # Full sync every 20 seconds to catch front-panel manual changes
-                        if time.time() - self.last_full_sync > 20:
+                        # Periodic full sync every 30 seconds
+                        if time.time() - self.last_full_sync > 30:
                             self._sync_state()
+                        else:
+                            # Lightweight heartbeat
+                            res = self.instr.query("*OPC?").strip()
+                            if res != "1":
+                                raise Exception(f"OPC sync failed, got '{res}'")
                     except Exception as e:
                         logging.error(f"Polling loop failure: {e}")
-                        self.connected = False
-                        self.setParam("COMM_STATUS", 0)
-                        self.updatePVs()
-                        try:
-                            self.instr.write("*CLS")
-                            self.instr.clear()
-                        except: pass
+                        self._force_reconnect()
             time.sleep(5)
 
     def close(self):
-        with self.lock:
-            if self.instr:
-                try:
-                    self.instr.clear()
-                    self.instr.close()
-                except: pass
-            self.rm.close()
+        self._force_reconnect()
+        self.rm.close()
 
     def _parse_reason(self, reason):
         if reason.startswith("CH1:"): return 1, reason[4:]
@@ -239,7 +220,7 @@ class RigolDG4102Driver(Driver):
                     if not self.connected: return False
                     try:
                         self.instr.write(cmd)
-                        self.instr.query("*OPC?") # Force wait for completion
+                        time.sleep(0.05)
                         self.setParam(reason, 1)
                         self.updatePVs()
                         time.sleep(0.1)
@@ -248,8 +229,7 @@ class RigolDG4102Driver(Driver):
                         self.updatePVs()
                         return True
                     except:
-                        try: self.instr.clear()
-                        except: pass
+                        self._force_reconnect()
                         return False
 
         if channel:
@@ -260,12 +240,12 @@ class RigolDG4102Driver(Driver):
                     if not self.connected: return False
                     try:
                         self.instr.write(full_cmd)
-                        self.instr.query("*OPC?") # Force wait for completion
+                        # Don't query *OPC? here to avoid socket collision
+                        time.sleep(0.02)
                         if suffix != "TRIG_MANUAL": self.setParam(reason, epics_value)
                         return True
                     except:
-                        try: self.instr.clear()
-                        except: pass
+                        self._force_reconnect()
                         return False
         return False
 
@@ -273,11 +253,15 @@ class RigolDG4102Driver(Driver):
     def read(self, reason):
         if reason == "COMM_STATUS": return self.connected
         if reason == "IDN":
-            val = self._safe_query("*IDN?", expected_type='string')
-            if val:
-                self.setParam(reason, val)
-                return val
-            return self.getParam(reason)
+            if not self.connected: return "Disconnected"
+            with self.lock:
+                try:
+                    val = self.instr.query("*IDN?").strip()
+                    self.setParam(reason, val)
+                    return val
+                except:
+                    self._force_reconnect()
+                    return self.getParam(reason)
 
         channel, suffix = self._parse_reason(reason)
         if channel:

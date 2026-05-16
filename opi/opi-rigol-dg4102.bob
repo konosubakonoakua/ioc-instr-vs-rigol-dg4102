@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <display version="2.0.0">
   <name>Rigol DG4102 Control</name>
+  <width>1400</width>
+  <height>950</height>
   <macros>
     <P>DG4102</P>
   </macros>
-  <width>1400</width>
-  <height>950</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <text>Rigol DG4102 Dual-Channel Waveform Generator (Extended)</text>
@@ -67,9 +67,9 @@
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH1:AMPL</pv_name><x>70</x><y>5</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
       <widget type="label" version="2.0.0"><text>Offs:</text><x>5</x><y>45</y></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH1:OFFSET</pv_name><x>70</x><y>40</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
-      <widget type="label" version="2.0.0"><text>High:</text><x>5</x><y>80</y><font><font name="Header 2" family="Liberation Sans" style="BOLD" size="14.0"></font></font></widget>
+      <widget type="label" version="2.0.0"><text>High:</text><x>5</x><y>80</y><font><font style="BOLD" size="14.0"></font></font></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH1:HIGH</pv_name><x>70</x><y>75</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
-      <widget type="label" version="2.0.0"><text>Low:</text><x>5</x><y>115</y><font><font name="Header 2" family="Liberation Sans" style="BOLD" size="14.0"></font></font></widget>
+      <widget type="label" version="2.0.0"><text>Low:</text><x>5</x><y>115</y><font><font style="BOLD" size="14.0"></font></font></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH1:LOW</pv_name><x>70</x><y>110</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
       <widget type="label" version="2.0.0"><text>Load:</text><x>5</x><y>150</y></widget>
       <widget type="combo" version="2.0.0">
@@ -180,9 +180,9 @@
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH2:AMPL</pv_name><x>70</x><y>5</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
       <widget type="label" version="2.0.0"><text>Offs:</text><x>5</x><y>45</y></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH2:OFFSET</pv_name><x>70</x><y>40</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
-      <widget type="label" version="2.0.0"><text>High:</text><x>5</x><y>80</y><font><font name="Header 2" family="Liberation Sans" style="BOLD" size="14.0"></font></font></widget>
+      <widget type="label" version="2.0.0"><text>High:</text><x>5</x><y>80</y><font><font style="BOLD" size="14.0"></font></font></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH2:HIGH</pv_name><x>70</x><y>75</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
-      <widget type="label" version="2.0.0"><text>Low:</text><x>5</x><y>115</y><font><font name="Header 2" family="Liberation Sans" style="BOLD" size="14.0"></font></font></widget>
+      <widget type="label" version="2.0.0"><text>Low:</text><x>5</x><y>115</y><font><font style="BOLD" size="14.0"></font></font></widget>
       <widget type="spinner" version="2.0.0"><pv_name>$(P):CH2:LOW</pv_name><x>70</x><y>110</y><limits_from_pv>true</limits_from_pv><border_alarm_sensitive>false</border_alarm_sensitive></widget>
       <widget type="label" version="2.0.0"><text>Load:</text><x>5</x><y>150</y></widget>
       <widget type="combo" version="2.0.0">

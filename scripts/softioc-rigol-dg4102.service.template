@@ -20,7 +20,7 @@ Environment="EPICS_BASE={{EPICS_BASE}}"
 Environment="PATH={{EPICS_BASE}}/bin/linux-aarch64:/usr/local/bin:/usr/bin:/bin"
 
 # Start the IOC using the specified Python binary and arguments from .env
-ExecStart={{PYTHON_BIN}} {{PROJECT_DIR}}/ioc.py --ip {{RIGOL_IP}} --port {{RIGOL_PORT}} --prefix {{RIGOL_PREFIX}}
+ExecStart={{PYTHON_BIN}} {{PROJECT_DIR}}/ioc.py --ip {{RIGOL_IP}} --port "{{RIGOL_PORT}}" --prefix {{RIGOL_PREFIX}}
 
 StandardOutput=journal
 StandardError=journal

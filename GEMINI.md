@@ -27,3 +27,6 @@ This project provides a feature-rich EPICS SoftIOC for controlling the Rigol DG4
 *   `ioc/ioc.py`: The main driver and PV database.
 *   `opi/opi-rigol-dg4102.bob`: The graphical user interface.
 *   `scripts/deploy.sh`: The automated Linux deployment tool.
+
+## Development Environment
+- windows powershell 7

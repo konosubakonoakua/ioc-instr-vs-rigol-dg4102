@@ -199,6 +199,11 @@ class RigolDG4102Driver(Driver):
             "MOD_STAT": ("SOUR{ch}:MOD:STAT", ""),
             "MOD_TYP": ("SOUR{ch}:MOD:TYP", ""),
             "TRIG_SOUR": ("SOUR{ch}:BURS:TRIG:SOUR", ""),
+            "BURST_GATE_POL": ("SOUR{ch}:BURS:GATE:POL", ""),
+            "BURST_PHASE": ("SOUR{ch}:BURS:PHAS", ""),
+            "BURST_TDELAY": ("SOUR{ch}:BURS:TDEL", ""),
+            "BURST_TRIG_SLOP": ("SOUR{ch}:BURS:TRIG:SLOP", ""),
+            "BURST_TRIG_OUT": ("SOUR{ch}:BURS:TRIG:TRIGO", ""),
         }
         global_action_mapping = {
             "COPY_1_TO_2": "SYST:CSC CH1,CH2",
@@ -498,6 +503,23 @@ if __name__ == "__main__":
                 },
                 f"{ch}:TRIG_SOUR": {"type": "enum", "enums": ["INT", "EXT", "MAN"]},
                 f"{ch}:TRIG_MANUAL": {"type": "int"},
+                f"{ch}:BURST_GATE_POL": {"type": "enum", "enums": ["NORM", "INV"]},
+                f"{ch}:BURST_PHASE": {
+                    "type": "float",
+                    "unit": "deg",
+                    "prec": 2,
+                    "lolim": 0,
+                    "hilim": 360,
+                },
+                f"{ch}:BURST_TDELAY": {
+                    "type": "float",
+                    "unit": "s",
+                    "prec": 9,
+                    "lolim": 0,
+                    "hilim": 1000,
+                },
+                f"{ch}:BURST_TRIG_SLOP": {"type": "enum", "enums": ["POS", "NEG"]},
+                f"{ch}:BURST_TRIG_OUT": {"type": "enum", "enums": ["OFF", "POS", "NEG"]},
             }
         )
 

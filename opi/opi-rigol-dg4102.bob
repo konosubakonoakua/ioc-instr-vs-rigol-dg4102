@@ -5,7 +5,7 @@
     <P>DG4102</P>
   </macros>
   <width>1400</width>
-  <height>950</height>
+  <height>1030</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <text>Rigol DG4102 Dual-Channel Waveform Generator (Extended)</text>
@@ -42,7 +42,7 @@
     <x>20</x>
     <y>110</y>
     <width>660</width>
-    <height>750</height>
+    <height>830</height>
     <widget type="bool_button" version="2.0.0">
       <name>CH1_OUT</name>
       <pv_name>$(P):CH1:OUTPUT</pv_name>
@@ -226,7 +226,7 @@
       <x>10</x>
       <y>310</y>
       <width>620</width>
-      <height>180</height>
+      <height>260</height>
       <widget type="bool_button" version="2.0.0">
         <name>S</name>
         <pv_name>$(P):CH1:SWEEP_STAT</pv_name>
@@ -305,11 +305,98 @@
         <y>100</y>
         <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
+      <widget type="label" version="2.0.0">
+        <text>Period:</text>
+        <x>10</x>
+        <y>150</y>
+        <width>55</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_PERIOD</pv_name>
+        <x>70</x>
+        <y>145</y>
+        <width>130</width>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Phase:</text>
+        <x>215</x>
+        <y>150</y>
+        <width>50</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_PHASE</pv_name>
+        <x>270</x>
+        <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>TDelay:</text>
+        <x>385</x>
+        <y>150</y>
+        <width>55</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_TDELAY</pv_name>
+        <x>445</x>
+        <y>145</y>
+        <width>155</width>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Gate Pol:</text>
+        <x>10</x>
+        <y>200</y>
+        <width>65</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_GATE_POL</pv_name>
+        <x>85</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>NORM</item>
+          <item>INV</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Trig Edge:</text>
+        <x>200</x>
+        <y>200</y>
+        <width>65</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_TRIG_SLOP</pv_name>
+        <x>275</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>POS</item>
+          <item>NEG</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Trig Out:</text>
+        <x>390</x>
+        <y>200</y>
+        <width>60</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH1:BURST_TRIG_OUT</pv_name>
+        <x>460</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>OFF</item>
+          <item>POS</item>
+          <item>NEG</item>
+        </items>
+      </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Modulation &amp; Trigger</name>
       <x>10</x>
-      <y>500</y>
+      <y>580</y>
       <width>620</width>
       <height>150</height>
       <widget type="bool_button" version="2.0.0">
@@ -377,7 +464,7 @@
     <x>700</x>
     <y>110</y>
     <width>660</width>
-    <height>750</height>
+    <height>830</height>
     <widget type="bool_button" version="2.0.0">
       <name>CH2_OUT</name>
       <pv_name>$(P):CH2:OUTPUT</pv_name>
@@ -561,7 +648,7 @@
       <x>10</x>
       <y>310</y>
       <width>620</width>
-      <height>180</height>
+      <height>260</height>
       <widget type="bool_button" version="2.0.0">
         <pv_name>$(P):CH2:SWEEP_STAT</pv_name>
         <x>10</x>
@@ -638,11 +725,98 @@
         <y>100</y>
         <border_alarm_sensitive>false</border_alarm_sensitive>
       </widget>
+      <widget type="label" version="2.0.0">
+        <text>Period:</text>
+        <x>10</x>
+        <y>150</y>
+        <width>55</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_PERIOD</pv_name>
+        <x>70</x>
+        <y>145</y>
+        <width>130</width>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Phase:</text>
+        <x>215</x>
+        <y>150</y>
+        <width>50</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_PHASE</pv_name>
+        <x>270</x>
+        <y>145</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>TDelay:</text>
+        <x>385</x>
+        <y>150</y>
+        <width>55</width>
+      </widget>
+      <widget type="spinner" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_TDELAY</pv_name>
+        <x>445</x>
+        <y>145</y>
+        <width>155</width>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Gate Pol:</text>
+        <x>10</x>
+        <y>200</y>
+        <width>65</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_GATE_POL</pv_name>
+        <x>85</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>NORM</item>
+          <item>INV</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Trig Edge:</text>
+        <x>200</x>
+        <y>200</y>
+        <width>65</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_TRIG_SLOP</pv_name>
+        <x>275</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>POS</item>
+          <item>NEG</item>
+        </items>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <text>Trig Out:</text>
+        <x>390</x>
+        <y>200</y>
+        <width>60</width>
+      </widget>
+      <widget type="combo" version="2.0.0">
+        <pv_name>$(P):CH2:BURST_TRIG_OUT</pv_name>
+        <x>460</x>
+        <y>195</y>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+        <items>
+          <item>OFF</item>
+          <item>POS</item>
+          <item>NEG</item>
+        </items>
+      </widget>
     </widget>
     <widget type="group" version="3.0.0">
       <name>Modulation &amp; Trigger</name>
       <x>10</x>
-      <y>500</y>
+      <y>580</y>
       <width>620</width>
       <height>150</height>
       <widget type="bool_button" version="2.0.0">
@@ -708,7 +882,7 @@
   <widget type="group" version="3.0.0">
     <name>System &amp; Sync Actions</name>
     <x>20</x>
-    <y>865</y>
+    <y>945</y>
     <width>1340</width>
     <height>70</height>
     <widget type="action_button" version="3.0.0">

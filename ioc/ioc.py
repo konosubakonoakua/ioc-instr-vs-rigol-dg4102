@@ -51,9 +51,12 @@ class RigolDG4102Driver(Driver):
         if now - self._last_attempt < self._backoff:
             return False
 
-        self._last_attempt = now
-
         with self.lock:
+            # Re-check after acquiring lock — another thread may have connected
+            if self.connected and self.instr:
+                return True
+            self._last_attempt = now
+
             try:
                 logging.info(f"Attempting to connect to {self.visa_addr}...")
 
@@ -157,8 +160,19 @@ class RigolDG4102Driver(Driver):
                 return None
 
     def close(self):
-        self._force_reconnect()
-        self.rm.close()
+        """Clean shutdown of instrument and resource manager."""
+        self.connected = False
+        if self.instr:
+            try:
+                self.instr.timeout = 500
+                self.instr.close()
+            except:
+                pass
+        self.instr = None
+        try:
+            self.rm.close()
+        except:
+            pass
 
     def _parse_reason(self, reason):
         if reason.startswith("CH1:"):
@@ -555,6 +569,9 @@ if __name__ == "__main__":
     else:
         visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
     driver = RigolDG4102Driver(visa_addr, args.terminator, RIGOL_PVDB)
+
+    # One-shot background connection attempt — OPI opens with connection ready
+    threading.Timer(0.5, lambda: driver._ensure_connected()).start()
 
     def shutdown_handler(signum, frame):
         logging.info("Shutting down...")

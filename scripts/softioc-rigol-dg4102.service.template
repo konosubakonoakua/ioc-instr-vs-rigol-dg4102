@@ -2,7 +2,7 @@
 Description=EPICS SoftIOC for Rigol DG4102 Waveform Generator
 After=network-online.target
 Wants=network-online.target
-StartLimitIntervalSec=60
+StartLimitIntervalSec=120
 StartLimitBurst=5
 
 [Service]
@@ -25,7 +25,7 @@ ExecStart={{PYTHON_BIN}} {{PROJECT_DIR}}/ioc.py --ip {{RIGOL_IP}} --port "{{RIGO
 StandardOutput=journal
 StandardError=journal
 Restart=always
-RestartSec=5
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target

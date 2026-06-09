@@ -4,6 +4,7 @@ from rich.pretty import pprint
 import argparse
 import logging
 import signal
+import socket
 import sys
 import threading
 import time
@@ -31,20 +32,42 @@ class RigolDG4102Driver(Driver):
         self.connected = False
         self.instr = None
         self.rm = pyvisa.ResourceManager()
-        self.last_full_sync = 0
 
-        # Heartbeat/Polling thread
-        self.heartbeat_thread = threading.Thread(target=self._polling_loop, daemon=True)
-        self.heartbeat_thread.start()
+        # Lazy reconnect with exponential backoff
+        self._last_attempt = 0
+        self._backoff = 1
+        self._consecutive_errors = 0
 
-    def _connect_instrument(self):
+        # Read cache and rate limiting
+        self._read_cache = {}  # {pv_name: (timestamp, value)}
+        self._last_query_time = 0
+
+    def _ensure_connected(self):
+        """Lazy connect with exponential backoff. Returns True if connected."""
+        if self.connected and self.instr:
+            return True
+
+        now = time.time()
+        if now - self._last_attempt < self._backoff:
+            return False
+
+        self._last_attempt = now
+
         with self.lock:
             try:
                 logging.info(f"Attempting to connect to {self.visa_addr}...")
-                self.instr = self.rm.open_resource(self.visa_addr)
+
+                # Set socket timeout to avoid blocking on OS TCP timeout (up to 127s)
+                old_timeout = socket.getdefaulttimeout()
+                socket.setdefaulttimeout(5)
+                try:
+                    self.instr = self.rm.open_resource(self.visa_addr)
+                finally:
+                    socket.setdefaulttimeout(old_timeout)
+
                 self.instr.write_termination = self.terminator
                 self.instr.read_termination = self.terminator
-                self.instr.timeout = 3000  # 3s is enough for simple queries
+                self.instr.timeout = 3000
 
                 # Initial cleanup
                 self.instr.write("*CLS")
@@ -56,18 +79,19 @@ class RigolDG4102Driver(Driver):
                     logging.info(f"Connected to: {idn}")
                     self.connected = True
                     self.setParam("COMM_STATUS", 1)
-                    logging.info("Performing startup state synchronization...")
-                    self._sync_state()
                     self.updatePVs()
+                    self._backoff = 1
+                    self._consecutive_errors = 0
                     return True
                 return False
             except Exception as e:
                 logging.error(f"Connection failed: {e}")
+                self._backoff = min(self._backoff * 2, 60)
                 self._force_reconnect()
                 return False
 
     def _force_reconnect(self):
-        """Force a disconnect to clear all socket and instrument buffers."""
+        """Force a disconnect and recreate ResourceManager to clear all state."""
         with self.lock:
             if self.connected or self.instr:
                 logging.warning("Forcing disconnect to reset communication state...")
@@ -80,19 +104,32 @@ class RigolDG4102Driver(Driver):
                 except:
                     pass
             self.instr = None
+            try:
+                self.rm.close()
+            except:
+                pass
+            self.rm = pyvisa.ResourceManager()
+            self._read_cache.clear()
 
     def _safe_query(self, cmd, expected_type=None):
-        """Perform a query with type-safety and auto-reconnect on sync loss."""
+        """Perform a query with tolerance for transient errors."""
         if not self.instr or not self.connected:
             return None
 
         with self.lock:
             try:
-                # Pacing
-                time.sleep(0.04)
+                # Dynamic minimum interval between queries
+                elapsed = time.time() - self._last_query_time
+                if elapsed < 0.03:
+                    time.sleep(0.03 - elapsed)
                 val = self.instr.query(cmd).strip().replace('"', "")
+                self._last_query_time = time.time()
 
                 if not val:
+                    self._consecutive_errors += 1
+                    if self._consecutive_errors >= 3:
+                        self._force_reconnect()
+                        self._consecutive_errors = 0
                     return None
 
                 if expected_type == "numeric":
@@ -102,63 +139,21 @@ class RigolDG4102Driver(Driver):
                         logging.error(
                             f"Sync loss detected: Query '{cmd}' expected number but got '{val}'."
                         )
-                        self._force_reconnect()
+                        self._consecutive_errors += 1
+                        if self._consecutive_errors >= 3:
+                            self._force_reconnect()
+                            self._consecutive_errors = 0
                         return None
+
+                self._consecutive_errors = 0
                 return val
             except Exception as e:
                 logging.error(f"Query '{cmd}' failed: {e}")
-                self._force_reconnect()
+                self._consecutive_errors += 1
+                if self._consecutive_errors >= 3:
+                    self._force_reconnect()
+                    self._consecutive_errors = 0
                 return None
-
-    def _sync_state(self, target_channel=None):
-        if not self.connected:
-            return
-        # Action PVs don't need polling
-        skip_suffixes = [
-            "SYSTEM_PRESET",
-            "COPY_1_TO_2",
-            "COPY_2_TO_1",
-            "PHASE_SYNC",
-            "TRIG_MANUAL",
-            "COMM_STATUS",
-            "IDN",
-        ]
-
-        with self.lock:
-            for pv_name in self.pvdb:
-                if any(pv_name.endswith(s) for s in skip_suffixes):
-                    continue
-                if target_channel is not None:
-                    ch, suffix = self._parse_reason(pv_name)
-                    if ch != target_channel:
-                        continue
-
-                # Fetch value
-                self.read(pv_name)
-                time.sleep(0.01)
-
-            self.updatePVs()
-            self.last_full_sync = time.time()
-
-    def _polling_loop(self):
-        while True:
-            if not self.connected:
-                self._connect_instrument()
-            else:
-                with self.lock:
-                    try:
-                        # Periodic full sync every 30 seconds
-                        if time.time() - self.last_full_sync > 30:
-                            self._sync_state()
-                        else:
-                            # Lightweight heartbeat
-                            res = self.instr.query("*OPC?").strip()
-                            if res != "1":
-                                raise Exception(f"OPC sync failed, got '{res}'")
-                    except Exception as e:
-                        logging.error(f"Polling loop failure: {e}")
-                        self._force_reconnect()
-            time.sleep(5)
 
     def close(self):
         self._force_reconnect()
@@ -224,6 +219,11 @@ class RigolDG4102Driver(Driver):
     def write(self, reason, value):
         if reason == "COMM_STATUS":
             return False
+
+        if not self.connected:
+            if not self._ensure_connected():
+                return False
+
         epics_value = value
         scpi_value = value
         channel, suffix = self._parse_reason(reason)
@@ -259,9 +259,9 @@ class RigolDG4102Driver(Driver):
                         self.setParam(reason, 1)
                         self.updatePVs()
                         time.sleep(0.1)
-                        self._sync_state()
                         self.setParam(reason, 0)
                         self.updatePVs()
+                        self._read_cache.clear()
                         return True
                     except:
                         self._force_reconnect()
@@ -280,6 +280,7 @@ class RigolDG4102Driver(Driver):
                         time.sleep(0.02)
                         if suffix != "TRIG_MANUAL":
                             self.setParam(reason, epics_value)
+                        self._read_cache.pop(reason, None)
                         return True
                     except:
                         self._force_reconnect()
@@ -292,7 +293,8 @@ class RigolDG4102Driver(Driver):
             return self.connected
         if reason == "IDN":
             if not self.connected:
-                return "Disconnected"
+                if not self._ensure_connected():
+                    return "Disconnected"
             with self.lock:
                 try:
                     val = self.instr.query("*IDN?").strip()
@@ -302,6 +304,10 @@ class RigolDG4102Driver(Driver):
                     self._force_reconnect()
                     return self.getParam(reason)
 
+        if not self.connected:
+            if not self._ensure_connected():
+                return self.getParam(reason)
+
         channel, suffix = self._parse_reason(reason)
         if channel:
             expected = "numeric"
@@ -309,6 +315,11 @@ class RigolDG4102Driver(Driver):
                 expected = "enum"
             cmd = self._get_scpi_cmd(channel, suffix, is_query=True)
             if cmd:
+                # Check read cache (2s TTL)
+                cached = self._read_cache.get(reason)
+                if cached and time.time() - cached[0] < 2.0:
+                    return cached[1]
+
                 val = self._safe_query(cmd, expected_type=expected)
                 if val is None:
                     return self.getParam(reason)
@@ -327,6 +338,7 @@ class RigolDG4102Driver(Driver):
                             else enums.index(val.upper())
                         )
                         self.setParam(reason, index)
+                        self._read_cache[reason] = (time.time(), index)
                         return index
                     except:
                         return self.getParam(reason)
@@ -337,6 +349,7 @@ class RigolDG4102Driver(Driver):
                         else:
                             val = int(val)
                         self.setParam(reason, val)
+                        self._read_cache[reason] = (time.time(), val)
                         return val
                     except:
                         return self.getParam(reason)

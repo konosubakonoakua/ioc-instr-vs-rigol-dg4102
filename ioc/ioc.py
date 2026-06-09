@@ -42,6 +42,12 @@ class RigolDG4102Driver(Driver):
         self._read_cache = {}  # {pv_name: (timestamp, value)}
         self._last_query_time = 0
 
+        # Lightweight heartbeat
+        self.heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop, daemon=True
+        )
+        self.heartbeat_thread.start()
+
     def _ensure_connected(self):
         """Lazy connect with exponential backoff. Returns True if connected."""
         if self.connected and self.instr:
@@ -158,6 +164,33 @@ class RigolDG4102Driver(Driver):
                     self._force_reconnect()
                     self._consecutive_errors = 0
                 return None
+
+    def _heartbeat_loop(self):
+        """Lightweight heartbeat — *OPC? every 10s to detect silent disconnects."""
+        while True:
+            time.sleep(10)
+            if not self.connected:
+                continue
+            try:
+                with self.lock:
+                    if not self.connected:
+                        continue
+                    res = self.instr.query("*OPC?").strip()
+                    if res != "1":
+                        self._consecutive_errors += 1
+                        logging.warning(
+                            f"Heartbeat: OPC sync lost got '{res}' "
+                            f"({self._consecutive_errors}/3)"
+                        )
+                        if self._consecutive_errors >= 3:
+                            self._force_reconnect()
+                    else:
+                        self._consecutive_errors = 0
+            except Exception as e:
+                logging.error(f"Heartbeat failed: {e}")
+                self._consecutive_errors += 1
+                if self._consecutive_errors >= 3:
+                    self._force_reconnect()
 
     def close(self):
         """Clean shutdown of instrument and resource manager."""

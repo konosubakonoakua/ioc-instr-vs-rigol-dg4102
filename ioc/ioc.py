@@ -88,16 +88,19 @@ class RigolDG4102Driver(Driver):
                 if idn:
                     logging.info(f"Connected to: {idn}")
                     self.connected = True
-                    self.setParam("COMM_STATUS", 1)
-                    self.updatePVs()
                     self._backoff = 1
                     self._consecutive_errors = 0
                     # One-shot background sync after fresh connection
                     if self._needs_sync:
                         self._needs_sync = False
+                        self.setParam("COMM_STATUS", 1)  # Syncing
+                        self.updatePVs()
                         threading.Thread(
                             target=self._background_sync, daemon=True
                         ).start()
+                    else:
+                        self.setParam("COMM_STATUS", 2)  # Connected
+                        self.updatePVs()
                     return True
                 return False
             except Exception as e:
@@ -214,6 +217,8 @@ class RigolDG4102Driver(Driver):
             except Exception as e:
                 logging.error(f"Sync error for {pv_name}: {e}")
         logging.info(f"Background sync complete: {count} PVs updated")
+        self.setParam("COMM_STATUS", 2)  # Connected
+        self.updatePVs()
 
     def close(self):
         """Clean shutdown of instrument and resource manager."""
@@ -361,7 +366,7 @@ class RigolDG4102Driver(Driver):
     @log_exceptions
     def read(self, reason):
         if reason == "COMM_STATUS":
-            return self.connected
+            return self.getParam(reason)
         if reason == "IDN":
             if not self.connected:
                 if not self._ensure_connected():
@@ -610,7 +615,7 @@ if __name__ == "__main__":
     RIGOL_PVDB.update(
         {
             "IDN": {"type": "string"},
-            "COMM_STATUS": {"type": "enum", "enums": ["Disconnected", "Connected"]},
+            "COMM_STATUS": {"type": "enum", "enums": ["Disconnected", "Syncing", "Connected"]},
             "SYSTEM_PRESET": {"type": "int"},
             "COPY_1_TO_2": {"type": "int"},
             "COPY_2_TO_1": {"type": "int"},

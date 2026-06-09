@@ -100,6 +100,7 @@ class RigolDG4102Driver(Driver):
             self.updatePVs()
             if self.instr:
                 try:
+                    self.instr.timeout = 500
                     self.instr.close()
                 except:
                     pass

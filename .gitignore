@@ -1,3 +1,4 @@
 .refs/
 .env
+__pycache__/
 

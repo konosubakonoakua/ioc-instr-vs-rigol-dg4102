@@ -47,6 +47,7 @@ class RigolDG4102Driver(Driver):
             target=self._heartbeat_loop, daemon=True
         )
         self.heartbeat_thread.start()
+        self._needs_sync = True
 
     def _ensure_connected(self):
         """Lazy connect with exponential backoff. Returns True if connected."""
@@ -91,6 +92,12 @@ class RigolDG4102Driver(Driver):
                     self.updatePVs()
                     self._backoff = 1
                     self._consecutive_errors = 0
+                    # One-shot background sync after fresh connection
+                    if self._needs_sync:
+                        self._needs_sync = False
+                        threading.Thread(
+                            target=self._background_sync, daemon=True
+                        ).start()
                     return True
                 return False
             except Exception as e:
@@ -120,6 +127,7 @@ class RigolDG4102Driver(Driver):
                 pass
             self.rm = pyvisa.ResourceManager()
             self._read_cache.clear()
+            self._needs_sync = True
 
     def _safe_query(self, cmd, expected_type=None):
         """Perform a query with tolerance for transient errors."""
@@ -191,6 +199,21 @@ class RigolDG4102Driver(Driver):
                 self._consecutive_errors += 1
                 if self._consecutive_errors >= 3:
                     self._force_reconnect()
+
+    def _background_sync(self):
+        """One-shot sync of all PVs after fresh connection. Runs in background thread."""
+        skip = {"IDN", "COMM_STATUS"}
+        logging.info("Starting background parameter sync...")
+        count = 0
+        for pv_name in list(self.pvdb):
+            if pv_name in skip:
+                continue
+            try:
+                self.read(pv_name)
+                count += 1
+            except Exception as e:
+                logging.error(f"Sync error for {pv_name}: {e}")
+        logging.info(f"Background sync complete: {count} PVs updated")
 
     def close(self):
         """Clean shutdown of instrument and resource manager."""

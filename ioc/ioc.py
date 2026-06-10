@@ -23,7 +23,7 @@ def log_exceptions(func):
 
 
 class RigolDG4102Driver(Driver):
-    def __init__(self, visa_addr, terminator, pvdb):
+    def __init__(self, visa_addr, terminator, pvdb, sync_interval=0):
         super().__init__()
         self.pvdb = pvdb
         self.visa_addr = visa_addr
@@ -32,6 +32,7 @@ class RigolDG4102Driver(Driver):
         self.connected = False
         self.instr = None
         self.rm = pyvisa.ResourceManager()
+        self._sync_interval = sync_interval
 
         # Lazy reconnect with exponential backoff
         self._last_attempt = 0
@@ -48,6 +49,12 @@ class RigolDG4102Driver(Driver):
         )
         self.heartbeat_thread.start()
         self._needs_sync = True
+
+        if self._sync_interval > 0:
+            self._sync_thread = threading.Thread(
+                target=self._periodic_sync_loop, daemon=True
+            )
+            self._sync_thread.start()
 
     def _ensure_connected(self):
         """Lazy connect with exponential backoff. Returns True if connected."""
@@ -203,10 +210,9 @@ class RigolDG4102Driver(Driver):
                 if self._consecutive_errors >= 3:
                     self._force_reconnect()
 
-    def _background_sync(self):
-        """One-shot sync of all PVs after fresh connection. Runs in background thread."""
+    def _sync_all_pvs(self):
+        """Read all PVs from device. Returns count of successful reads."""
         skip = {"IDN", "COMM_STATUS"}
-        logging.info("Starting background parameter sync...")
         count = 0
         for pv_name in list(self.pvdb):
             if pv_name in skip:
@@ -216,9 +222,24 @@ class RigolDG4102Driver(Driver):
                 count += 1
             except Exception as e:
                 logging.error(f"Sync error for {pv_name}: {e}")
+        return count
+
+    def _background_sync(self):
+        """One-shot sync after fresh connection, then mark Connected."""
+        logging.info("Starting background parameter sync...")
+        count = self._sync_all_pvs()
         logging.info(f"Background sync complete: {count} PVs updated")
-        self.setParam("COMM_STATUS", 2)  # Connected
+        self.setParam("COMM_STATUS", 2)
         self.updatePVs()
+
+    def _periodic_sync_loop(self):
+        """Periodic full sync at configured interval."""
+        while True:
+            time.sleep(self._sync_interval)
+            if not self.connected:
+                continue
+            count = self._sync_all_pvs()
+            logging.info(f"Periodic sync: {count} PVs updated")
 
     def close(self):
         """Clean shutdown of instrument and resource manager."""
@@ -438,6 +459,12 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=str, default="")
     parser.add_argument("--prefix", type=str, default="DG4102:")
     parser.add_argument("--terminator", type=str, default="\n")
+    parser.add_argument(
+        "--sync-interval",
+        type=int,
+        default=0,
+        help="Periodic full sync interval in seconds (0=disabled)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -629,7 +656,9 @@ if __name__ == "__main__":
         visa_addr = f"TCPIP0::{args.ip}::INSTR"
     else:
         visa_addr = f"TCPIP0::{args.ip}::{args.port}::SOCKET"
-    driver = RigolDG4102Driver(visa_addr, args.terminator, RIGOL_PVDB)
+    driver = RigolDG4102Driver(
+        visa_addr, args.terminator, RIGOL_PVDB, sync_interval=args.sync_interval
+    )
 
     # One-shot background connection attempt — OPI opens with connection ready
     threading.Timer(0.5, lambda: driver._ensure_connected()).start()

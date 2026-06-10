@@ -957,5 +957,21 @@
       <tooltip>$(actions)</tooltip>
       <border_alarm_sensitive>false</border_alarm_sensitive>
     </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>Sync All</name>
+      <actions>
+        <action type="write_pv">
+          <description>Write PV</description>
+          <pv_name>$(P):SYNC_ALL</pv_name>
+          <value>1</value>
+        </action>
+      </actions>
+      <text>SYNC ALL</text>
+      <x>730</x>
+      <y>5</y>
+      <width>150</width>
+      <tooltip>$(actions)</tooltip>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+    </widget>
   </widget>
 </display>

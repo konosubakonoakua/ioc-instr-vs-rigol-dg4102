@@ -136,6 +136,9 @@ class RigolDG4102Driver(Driver):
             return None
 
         with self.lock:
+            # Re-check after acquiring lock — close() may have set instr to None
+            if not self.instr or not self.connected:
+                return None
             try:
                 # Dynamic minimum interval between queries
                 elapsed = time.time() - self._last_query_time
@@ -228,14 +231,15 @@ class RigolDG4102Driver(Driver):
 
     def close(self):
         """Clean shutdown of instrument and resource manager."""
-        self.connected = False
-        if self.instr:
-            try:
-                self.instr.timeout = 500
-                self.instr.close()
-            except:
-                pass
-        self.instr = None
+        with self.lock:
+            self.connected = False
+            if self.instr:
+                try:
+                    self.instr.timeout = 500
+                    self.instr.close()
+                except:
+                    pass
+            self.instr = None
         try:
             self.rm.close()
         except:
@@ -307,7 +311,7 @@ class RigolDG4102Driver(Driver):
                 time.sleep(0.05)
                 self.setParam("SYNC_ALL", 0)
                 self.updatePVs()
-            return False
+            return True
 
         if not self.connected:
             if not self._ensure_connected():
